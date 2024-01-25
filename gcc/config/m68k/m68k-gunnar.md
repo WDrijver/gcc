@@ -911,14 +911,15 @@
    (set_attr "opy" "*,0,*")])
 
 ;; Special case of fullword move when source is zero for 68040_60.
-;; On the '040, 'subl an,an' takes 2 clocks while lea takes only 1
+;; NOPE: On the '040, 'subl an,an' takes 2 clocks while lea takes only 1
+;; also takes 1 cycle!
 (define_insn "*movsi_const0_68040_60"
   [(set (match_operand:SI 0 "movsi_const0_operand" "=a,g")
 	(const_int 0))]
   "TUNE_68040_80"
 {
   if (which_alternative == 0)
-    return MOTOROLA ? "lea 0.w,%0" : "lea 0:w,%0";
+    return "sub%.l %0,%0";
   else if (which_alternative == 1)
     return "clr%.l %0";
   else
@@ -1257,11 +1258,7 @@
     {
       if (ADDRESS_REG_P (operands[0]))
 	{
-	  /* On the '040, 'subl an,an' takes 2 clocks while lea takes only 1 */
-	  if (TUNE_68040_80)
-	    return MOTOROLA ? "lea 0.w,%0" : "lea 0:w,%0";
-	  else
-	    return "sub%.l %0,%0";
+	  return "sub%.l %0,%0";
 	}
       /* moveq is faster on the 68000.  */
       if (DATA_REG_P (operands[0]) && TUNE_68000_10)
@@ -1585,6 +1582,16 @@
 	(match_operand:DI 1 "general_operand" ""))]
   ""
   "")
+
+;; Special case of qword move when source is zero for 68080.
+(define_insn "*movdi_const0_68080"
+  [(set (match_operand:DI 0 "movsi_const0_operand" "=m")
+	(const_int 0))]
+  "reload_completed && TUNE_68080"
+  "@
+   clr%.q %0"
+  [(set_attr "type" "clr_l")
+   (set_attr "opy" "*")])
 
 ;; movdi can apply to fp regs in some cases
 (define_insn ""
@@ -7241,9 +7248,11 @@
   CC_STATUS_INIT;
   if (DATA_REG_P (operands[0]))
 	{
-	  if (TUNE_68060 || TUNE_68080)
-		  return "subq%.l #1,%0\;jcc %l1";
-      return "dbra %0,%l1\;clr%.w %0\;subq%.l #1,%0\;jcc %l1";
+    if (TUNE_68080)
+            return "dbral %0,%l1";                 // APOLLO 68080 DBRAL
+    if (TUNE_68060)
+            return "subq%.l #1,%0;jcc %l1";
+    return "dbra %0,%l1;clr%.w %0;subq%.l #1,%0;jcc %l1";
 	}
   if (GET_CODE (operands[0]) == MEM)
     return "subq%.l #1,%0\;jcc %l1";
@@ -7309,7 +7318,7 @@
 	}
   if (GET_CODE (operands[0]) == MEM)
     return "subq%.l #1,%0\;jcc %l1";
-  return "subq%.l #1,%0\;cmp%.l #-1,%0\;jne %l1";
+  return "subq%.l #1,%0\;cmp%.w #-1,%0\;jne %l1";
 })
 
 (define_expand "sibcall"
@@ -9161,3 +9170,26 @@
     return "fsincos%.<FP:prec> %2,%0,%1";
 })
 
+;; combine clr if possible .l #0,x(a0), #0,x+4(a0) -> .q #0,n(a0)
+(define_peephole2
+  [(set (mem:SI (plus (match_operand:SI 0 "register_operand" "") (match_operand:SI 2 "const_int_operand" "")))
+		(match_operand:SI 1 "const_int_operand" ""))
+   (set (mem:SI (plus (match_dup 0) (match_operand:SI 3 "const_int_operand" "")))
+   		(match_dup 1))
+   ]
+  "reload_completed && !INTVAL (operands[1]) && INTVAL (operands[2]) + 4 == INTVAL (operands[3]) && (operands[4] = SET_DEST(PATTERN(insn))) && !operands[4]->volatil"
+  [(set (mem:DI (plus (match_dup 0) (match_dup 2))) (match_dup 1))]
+{
+})
+
+;; combine post_inc if possible .l #0,(a0)+, #0,(a0)+ -> .q #0,(a0)+
+(define_peephole2
+  [(set (mem:SI (post_inc:SI (match_operand:SI 0 "register_operand" "")))
+		(match_operand:SI 1 "const_int_operand" ""))
+   (set (mem:SI (post_inc:SI (match_dup 0)))
+   		(match_dup 1))
+   ]
+  "reload_completed && !INTVAL (operands[1]) && (operands[3] = SET_DEST(PATTERN(insn))) && !operands[3]->volatil"
+  [(set (mem:DI (post_inc:SI (match_dup 0))) (match_dup 1))]
+{
+})
