@@ -3408,7 +3408,7 @@ m68k_const_method (HOST_WIDE_INT i)
       if (i >= 0 && i <= 65535)
 	return MVZ;
       if (i >= -32768 && i <= 32767)
-	return MVS;
+	return MVS; 
     }
 
   /* Otherwise, use move.l */
@@ -3559,6 +3559,8 @@ output_move_simode_const (rtx *operands)
         return "mov3q%.l %1,%-";
       return "pea %a1";
     }
+  else if (TARGET_68080 && DATA_REG_P (dest) && IN_RANGE (src, 0, 0xffff))
+    return "mvz%.w %1,%0";
   return "move%.l %1,%0";
 }
 
