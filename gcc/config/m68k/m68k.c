@@ -3518,7 +3518,7 @@ output_move_const_into_data_reg (rtx *operands)
 bool
 valid_mov3q_const (HOST_WIDE_INT i)
 {
-  return TARGET_ISAB && (i == -1 || IN_RANGE (i, 1, 7));
+  return (TARGET_68080 || TARGET_ISAB) && (i == -1 || IN_RANGE (i, 1, 7));
 }
 
 /* Return an instruction to move CONST_INT OPERANDS[1] into OPERANDS[0].
@@ -3538,18 +3538,26 @@ output_move_simode_const (rtx *operands)
       && ((TARGET_68010 || TARGET_COLDFIRE)
 	  || !(MEM_P (dest) && MEM_VOLATILE_P (dest))))
     return "clr%.l %0";
+  
   else if (GET_MODE (dest) == SImode && valid_mov3q_const (src))
     return "mov3q%.l %1,%0";
+  
   else if (src == 0 && ADDRESS_REG_P (dest))
     return "sub%.l %0,%0";
+  
+  else if (TARGET_68080 && DATA_REG_P (dest) && IN_RANGE (src, -0x8000, 0x7fff))        // Apollo 68080
+    return "moviw%.l %1,%0";
+
   else if (DATA_REG_P (dest))
     return output_move_const_into_data_reg (operands);
+
   else if (ADDRESS_REG_P (dest) && IN_RANGE (src, -0x8000, 0x7fff))
     {
       if (valid_mov3q_const (src))
         return "mov3q%.l %1,%0";
       return "move%.w %1,%0";
     }
+
   else if (MEM_P (dest)
 	   && GET_CODE (XEXP (dest, 0)) == PRE_DEC
 	   && REGNO (XEXP (XEXP (dest, 0), 0)) == STACK_POINTER_REGNUM
@@ -3561,6 +3569,10 @@ output_move_simode_const (rtx *operands)
     }
   else if (TARGET_68080 && DATA_REG_P (dest) && IN_RANGE (src, 0, 0xffff))
     return "mvz%.w %1,%0";
+
+  else if (TARGET_68080 && IN_RANGE (src, -0x8000, 0x7fff))
+    return "moviw%.l %1,%0";
+
   return "move%.l %1,%0";
 }
 
