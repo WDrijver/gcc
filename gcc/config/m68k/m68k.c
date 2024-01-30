@@ -3525,18 +3525,22 @@ valid_mov3q_const (HOST_WIDE_INT i)
    I is the value of OPERANDS[1].  */
 
 static const char *
-output_move_simode_const (rtx *operands)
+output_move_simode_const (rtx operands)
 {
   rtx dest;
   HOST_WIDE_INT src;
 
   dest = operands[0];
   src = INTVAL (operands[1]);
-  if (src == 0
-      && (DATA_REG_P (dest) || MEM_P (dest))
-      /* clr insns on 68000 read before writing.  */
-      && ((TARGET_68010 || TARGET_COLDFIRE)
-	  || !(MEM_P (dest) && MEM_VOLATILE_P (dest))))
+  if (GET_CODE (operands[1]) == CONST_INT
+      && DATA_REG_P (operands[0])
+      && INTVAL (operands[1]) < 128
+      && INTVAL (operands[1]) >= -128)
+    return "moveq %1,%0";
+  else if (src == 0 &&  MEM_P(dest)
+      / clr insns on 68000 read before writing.  */
+      && ((TARGET_68010  TARGET_COLDFIRE)
+           !(MEM_P (dest) && MEM_VOLATILE_P (dest))))
     return "clr%.l %0";
   
   else if (GET_MODE (dest) == SImode && valid_mov3q_const (src))
