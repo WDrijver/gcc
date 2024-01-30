@@ -684,10 +684,12 @@ m68k_option_override (void)
     flag_pic = 1;
 #endif
 
-  /* SBF: use normal jumps/calls with baserel(32) modes. */
+/* SBF: use normal jumps/calls with baserel(32) modes. */
   if (!flag_pic || flag_pic > 2)
     {
       m68k_symbolic_call_var = M68K_SYMBOLIC_CALL_JSR;
+      m68k_symbolic_jump = "bra %a0";
+
 #ifndef TARGET_AMIGAOS_VASM
       m68k_symbolic_jump = flag_pic ? "jbra %a0" : "jmp %a0";
 #else
@@ -719,6 +721,11 @@ m68k_option_override (void)
 
   switch (m68k_symbolic_call_var)
     {
+    case M68K_SYMBOLIC_CALL_JSR:
+      // Apollo 68080 [BG] m68k_symbolic_call = flag_pic ? "jbsr %a0" : "jsr %a0";
+      m68k_symbolic_call =  "bsr %a0";
+      break;
+
     case M68K_SYMBOLIC_CALL_JSR:
       m68k_symbolic_call = flag_pic ? "jbsr %a0" : "jsr %a0";
       break;
