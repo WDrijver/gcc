@@ -689,12 +689,6 @@ m68k_option_override (void)
     {
       m68k_symbolic_call_var = M68K_SYMBOLIC_CALL_JSR;
       m68k_symbolic_jump = "bra %a0";
-
-#ifndef TARGET_AMIGAOS_VASM
-      m68k_symbolic_jump = flag_pic ? "jbra %a0" : "jmp %a0";
-#else
-      m68k_symbolic_jump = "jmp %a0";
-#endif
     }
   else if (TARGET_ID_SHARED_LIBRARY)
     /* All addresses must be loaded from the GOT.  */
