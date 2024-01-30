@@ -722,7 +722,7 @@ m68k_option_override (void)
   switch (m68k_symbolic_call_var)
     {
     case M68K_SYMBOLIC_CALL_JSR:
-      // Apollo 68080 [BG] m68k_symbolic_call = flag_pic ? "jbsr %a0" : "jsr %a0";
+      /* Apollo 68080 [BG] m68k_symbolic_call = flag_pic ? "jbsr %a0" : "jsr %a0"; */
       m68k_symbolic_call =  "bsr %a0";
       break;
 
