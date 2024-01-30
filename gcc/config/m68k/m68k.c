@@ -726,10 +726,6 @@ m68k_option_override (void)
       m68k_symbolic_call =  "bsr %a0";
       break;
 
-    case M68K_SYMBOLIC_CALL_JSR:
-      m68k_symbolic_call = flag_pic ? "jbsr %a0" : "jsr %a0";
-      break;
-
     case M68K_SYMBOLIC_CALL_BSR_C:
       m68k_symbolic_call = "bsr%.l %c0";
       break;
