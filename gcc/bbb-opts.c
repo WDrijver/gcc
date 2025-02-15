@@ -2475,8 +2475,10 @@ update_insn_infos (std::set<unsigned> & todo)
       zz.or_def (ii);
     }
 
-  /* always allow a0/a1, d0/d1. */
-  usable_regs = zz.get_def () | 0x303;
+  usable_regs = zz.get_def ();
+  /* always allow a0/a1, d0/d1 unless it's an interrupt handler */
+  if (m68k_get_function_kind (current_function_decl) != m68k_fk_interrupt_handler)
+    usable_regs |= 0x303;
   usable_regs &= 0x7fff;
 
   /* do not use global registers. */
