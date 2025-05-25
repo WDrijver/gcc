@@ -5490,6 +5490,9 @@ opt_final()
     {
       insn_info &ii = (*infos)[index];
 
+      if (GET_MODE_SIZE(ii.get_mode()) > 4)
+	continue;
+
       // cmp #0,ax
       if (ii.is_compare() && ii.get_dst_reg() && ii.get_dst_regno() >= 8 && ii.get_dst_regno() <= 15 && !ii.is_src_mem() && ii.is_src_const() && ii.get_src_intval() == 0)
 	{
