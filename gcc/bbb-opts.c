@@ -5888,7 +5888,12 @@ opt_shift (void)
 	  if (!jj->is_def(dy))
 	    break;
 
+	  // no memory src
+	  if (jj->is_src_mem())
+		  break;
+
 //	  debug(jj->get_insn());
+//	  debug(ii.get_insn());
 
 	  // there might be the use of a temp register:
 	  // moveq #0,dx
@@ -5976,8 +5981,7 @@ opt_shift (void)
 	    }
 	  // there might be an AND
 	  // and.l #255,dy
-	  else if (jj->get_mode() == SImode && jj->get_src_op() == AND
-	      && !jj->is_src_mem())
+	  else if (jj->get_mode() == SImode && jj->get_src_op() == AND)
 	    {
 	      int val = jj->get_src_intval();
 	      if ((val == 255 && mode == QImode) || (val == 65535 && mode == HImode))
