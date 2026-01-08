@@ -3465,7 +3465,7 @@ m68k_const_method (HOST_WIDE_INT i)
   if (USE_MOVQ ((u >> 16) | (u << 16)))
     return SWAP;
 
-  if (TARGET_ISAB || TARGET_68080)
+  if (TARGET_ISAB) /* || TARGET_68080) APOLLO LINEA NOT YET ENABLED */
     {
       /* Try using MVZ/MVS with an immediate value to load constants.  */
       if (i >= 0 && i <= 65535)
@@ -3581,7 +3581,7 @@ output_move_const_into_data_reg (rtx *operands)
 bool
 valid_mov3q_const (HOST_WIDE_INT i)
 {
-  return (TARGET_68080 || TARGET_ISAB) && (i == -1 || IN_RANGE (i, 1, 7));
+  return (TARGET_ISAB) && (i == -1 || IN_RANGE (i, 1, 7)); /* || TARGET_68080) APOLLO LINEA NOT YET ENABLED */
 }
 
 /* Return an instruction to move CONST_INT OPERANDS[1] into OPERANDS[0].
@@ -3595,45 +3595,23 @@ output_move_simode_const (rtx *operands)
 
   dest = operands[0];
   src = INTVAL (operands[1]);
-  if (src == 0 && (DATA_REG_P (dest) ))         // For clear DN MOVEQ is best
-    return "moveq #0,%0";
-  else if (src == 0 && MEM_P (dest)             // For memory use CLR
-      /* clr insns on 68000 read before writing.  */
-      && ((TARGET_68010 || TARGET_COLDFIRE)
-	  || !MEM_VOLATILE_P (dest)))           // but not for IO register on 68000
-    return "clr%.l %0";
-  else if (GET_MODE (dest) == SImode && valid_mov3q_const (src))
-    return "mov3q%.l %1,%0";
-  else if (src == 0 && ADDRESS_REG_P (dest))    // For AN always use SUBA
-    return "suba%.l %0,%0";
-  else if (DATA_REG_P (dest) && IN_RANGE (src, -0x80, 0x7f))
-    return "moveq %1,%0";
-  else if (TARGET_68080 && DATA_REG_P (dest) && IN_RANGE (src, -0x8000, 0x7fff))
-    return "moviw%.l %1,%0";
-  else if (DATA_REG_P (dest))
-    return output_move_const_into_data_reg (operands);
-  else if (ADDRESS_REG_P (dest) && IN_RANGE (src, -0x8000, 0x7fff))
-    {
-      if (valid_mov3q_const (src))
-        return "mov3q%.l %1,%0";
-      return "move%.w %1,%0";
-    }
-  else if (MEM_P (dest)
-           && GET_CODE (XEXP (dest, 0)) == PRE_DEC
-           && REGNO (XEXP (XEXP (dest, 0), 0)) == STACK_POINTER_REGNUM
-           && IN_RANGE (src, -0x8000, 0x7fff))
-    {
-      if (valid_mov3q_const (src))
-        return "mov3q%.l %1,%-";
-      return "pea %a1";
-    }
-  else if (TARGET_68080 && IN_RANGE (src, -0x8000, 0x7fff)){
-    return "moviw%.l %1,%0";
-  }else if (TARGET_68080 && DATA_REG_P (dest) && IN_RANGE (src, 0, 0xFfff)){
-    return "movzw%.l %1,%0";
-  }
-    return "move%.l %1,%0";
-}
+
+  if (IN_RANGE (src, -0x80, 0x7f) && (DATA_REG_P (dest) )) return "moveq %1,%0";            // 1. For immediates (DN) moveq is best
+  
+  else if (src == 0 && ADDRESS_REG_P (dest)) return "suba%.l %0,%0";                        // 2. For AN we always use suba
+  
+  else if (src == 0 && MEM_P (dest)) return "clr%.l %0";                                    // 3. For memory use CLR
+
+  // else if (GET_MODE (dest) == SImode && valid_mov3q_const (src)) return "mov3q%.l %1,%0";   // 4. APOLLO ALINE = Disabled for now
+
+  else if (IN_RANGE (src, -0x8000, 0x7fff) && MEM_P (dest) && GET_CODE (XEXP (dest, 0)) == PRE_DEC && REGNO (XEXP (XEXP (dest, 0), 0)) == STACK_POINTER_REGNUM) return "pea %a1";
+  
+  else if (IN_RANGE (src, -0x8000, 0x7fff) && ADDRESS_REG_P (dest)) return "move%.w %1,%0";
+
+  else if (IN_RANGE (src, -0x8000, 0x7fff) && TARGET_68080) return "moviw%.l %1,%0";     // APOLLO moviw.l ENABLED from Core 11720 and higher
+    
+  return "move%.l %1,%0";
+} 
 
 const char *
 output_move_simode (rtx *operands)
@@ -4721,7 +4699,7 @@ output_addsi3 (rtx *operands)
 	      else
 		return MOTOROLA ? "lea (%c2,%0),%0" : "lea %0@(%c2),%0";
 	    }
-	  if (TUNE_68080)
+	  if (TUNE_68080) //APOLLO
 	    return "addiw%.l %2,%0";
 	}
     }
